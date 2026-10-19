@@ -1,6 +1,6 @@
 const roomsKey = 'rum-saved-rooms-v1';
 
-/** @typedef {{ id: string, name: string, room: {width: number, height: number}, items: any[], openings: any[] }} RoomPlan */
+/** @typedef {{ id: string, name: string, room: {width: number, height: number, ceilingHeight?: number}, items: any[], openings: any[] }} RoomPlan */
 
 /** @param {Pick<Storage, 'getItem'>} storage @returns {RoomPlan[]} */
 export function readSavedRooms(storage) {

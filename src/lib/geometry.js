@@ -5,6 +5,7 @@
  * @param {Furniture} item
  */
 export function halfExtents(item) {
+  if (item.kind === 'round-table') return { x: item.width / 2, y: item.width / 2 };
   const radians = item.angle * Math.PI / 180;
   const c = Math.abs(Math.cos(radians));
   const s = Math.abs(Math.sin(radians));
@@ -78,6 +79,8 @@ export function validChaise(item) {
  */
 export function furniturePoints(item) {
   const w = item.width / 2, d = item.depth / 2;
+  // ponytail: a 128-sided footprint keeps ruler error below 1 cm even at the maximum diameter.
+  if (item.kind === 'round-table') return Array.from({ length: 128 }, (_, i) => [w * Math.cos(i * Math.PI / 64), w * Math.sin(i * Math.PI / 64)]);
   if (item.kind !== 'chaise-sofa') return [[-w, -d], [w, -d], [w, d], [-w, d]];
   const front = -d + (item.sofaDepth ?? item.depth);
   const edge = w - (item.chaiseWidth ?? item.width);
@@ -99,7 +102,7 @@ function corners(item, room) {
     const x = item.wall === 'left' ? 0 : room.width;
     return [{ x, y: item.offset }, { x, y: end }];
   }
-  const angle = item.angle * Math.PI / 180;
+  const angle = item.kind === 'round-table' ? 0 : item.angle * Math.PI / 180;
   return furniturePoints(item).map(([x, y]) => ({
     x: item.x + x * Math.cos(angle) - y * Math.sin(angle),
     y: item.y + x * Math.sin(angle) + y * Math.cos(angle)

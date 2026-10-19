@@ -7,15 +7,18 @@ const wallNames = { top: 'Övre vägg', right: 'Höger vägg', bottom: 'Nedre v�
  * @param {import('./room-storage.js').RoomPlan} plan
  */
 export function measurementRows(plan) {
+  const measuredItems = plan.items.filter((item) => item.kind !== 'outlet');
   return [...plan.items, ...plan.openings].map((item, index) => {
-    const guides = measurementGuides(item.id, plan.room, plan.items, plan.openings);
+    if (item.kind === 'outlet') return { item, number: index + 1, guides: [], lines: [item.name] };
+    const guides = measurementGuides(item.id, plan.room, measuredItems, plan.openings);
     const opening = 'wall' in item;
     const point = !opening && item.width === 0 && item.depth === 0;
     const dimensions = opening ? `${format(item.width)} cm bred · ${wallNames[item.wall]}`
       : point ? 'Placeringssymbol'
+      : item.kind === 'round-table' ? `Ø ${format(item.width)} cm`
       : `${format(item.width)} × ${format(item.depth)} cm · ${format(item.angle)}°`;
     const position = opening ? `${format(item.offset)} cm från ${['top', 'bottom'].includes(item.wall) ? 'vänster' : 'övre'} hörn`
-      : `Centrum: x ${format(item.x)} · y ${format(item.y)} cm`;
+      : `Centrum: x ${format(item.x)} · y ${format(item.y)} cm${item.elevation !== undefined ? ` · z ${format(item.elevation)} cm` : ''}`;
     const distances = [['left', 'V'], ['right', 'H'], ['top', 'U'], ['bottom', 'N']].map(([direction, label]) => {
       const guide = guides.find((entry) => entry.direction === direction);
       return `${label} ${guide ? format(guide.distance) : '–'}`;
@@ -24,7 +27,9 @@ export function measurementRows(plan) {
       ? [`Soffdel: ${format(item.width)} × ${format(item.sofaDepth)} cm · ${format(item.angle)}°`,
         `Divan: ${format(item.chaiseWidth)} × ${format(item.depth)} cm (totaldjup)`]
       : [dimensions];
-    return { item, number: index + 1, guides, lines: [item.name, ...parts, position, `${distances} cm`] };
+    if (item.height !== undefined) parts[0] += ` · höjd ${format(item.height)} cm`;
+    const verticalPosition = opening && item.kind === 'window' && item.sillHeight !== undefined ? ` · underkant ${format(item.sillHeight)} cm över golv` : '';
+    return { item, number: index + 1, guides, lines: [item.name, ...parts, position + verticalPosition, `${distances} cm`] };
   });
 }
 
@@ -56,7 +61,7 @@ export function createMeasuredSvg(drawing, plan, monochrome = false) {
   output.append(element('rect', { width: 1120, height, fill: '#fff' }));
   output.append(element('text', { x: 24, y: 30, 'font-size': 22, 'font-family': 'Arial, sans-serif', fill: '#111' }, plan.name));
   output.append(element('text', { x: 24, y: 53, 'font-size': 12, 'font-family': 'Arial, sans-serif', fill: '#111' },
-    `${format(plan.room.width)} × ${format(plan.room.height)} cm · ${format(plan.room.width * plan.room.height / 10000)} m² · Skalenlig planvy`));
+    `${format(plan.room.width)} × ${format(plan.room.height)} cm · ${format(plan.room.width * plan.room.height / 10000)} m² · Takhöjd ${format(plan.room.ceilingHeight ?? 240)} cm · Skalenlig planvy`));
 
   const sketch = /** @type {SVGSVGElement} */ (drawing.cloneNode(true));
   sketch.removeAttribute('class');
@@ -126,6 +131,6 @@ export function createMeasuredSvg(drawing, plan, monochrome = false) {
       output.append(element('text', { x: 760, y: 140 + index * 78 + lineIndex * 16, 'font-family': 'Arial, sans-serif', 'font-size': lineIndex === 0 ? 14 : 13, 'font-weight': lineIndex === 0 ? 'bold' : 'normal', fill: '#111' }, lineIndex === 0 ? `${row.number}. ${line}` : line));
     });
   });
-  output.append(element('text', { x: 24, y: height - 12, 'font-family': 'Arial, sans-serif', 'font-size': 10, fill: '#111' }, 'Alla mått i cm. Utskriften anpassas till sidan. Streck i måttlistan betyder att inget fritt avstånd visas i den riktningen.'));
+  output.append(element('text', { x: 24, y: height - 12, 'font-family': 'Arial, sans-serif', 'font-size': 10, fill: '#111' }, 'Alla mått i cm. z = underkant över golv. Utskriften anpassas till sidan. Streck i måttlistan betyder att inget fritt avstånd visas i den riktningen.'));
   return output;
 }

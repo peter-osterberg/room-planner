@@ -2,6 +2,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fitFurniture, halfExtents, measurementGuides, snapFurniture, wallLength, validNumber } from '../src/lib/geometry.js';
 
+test('round tables keep their diameter at any angle and measure to the circular edge', () => {
+  const room = { width: 500, height: 400 };
+  const table = { id: 'round', kind: 'round-table', width: 100, depth: 100, x: 50, y: 50, angle: 37 };
+  assert.deepEqual(halfExtents(table), { x: 50, y: 50 });
+  assert.deepEqual(fitFurniture({ ...table, x: 0, y: 400 }, room), { ...table, x: 50, y: 350 });
+  const guides = measurementGuides(table.id, room, [table], []);
+  assert.equal(guides.find((guide) => guide.direction === 'right').distance, 400);
+  assert.equal(guides.find((guide) => guide.direction === 'bottom').distance, 300);
+});
+
 test('centimeter dimensions, rotation and boundary constraints preserve furniture scale', () => {
   const room = { width: 500, height: 400 };
   const sofa = { width: 220, depth: 90, x: 110, y: 45, angle: 0 };
